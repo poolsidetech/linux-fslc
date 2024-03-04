@@ -1778,6 +1778,7 @@ struct iwl_mod_params iwlwifi_mod_params = {
 	.bt_coex_active = true,
 	.power_level = IWL_POWER_INDEX_1,
 	.uapsd_disable = IWL_DISABLE_UAPSD_BSS | IWL_DISABLE_UAPSD_P2P_CLIENT,
+	.beacon_timeout = 16,
 	.enable_ini = ENABLE_INI,
 	/* the rest are 0 by default */
 };
@@ -1926,6 +1927,10 @@ module_param_cb(enable_ini, &enable_ini_ops, &iwlwifi_mod_params.enable_ini, 064
 MODULE_PARM_DESC(enable_ini,
 		 "0:disable, 1-15:FW_DBG_PRESET Values, 16:enabled without preset value defined,"
 		 "Debug INI TLV FW debug infrastructure (default: 16)");
+
+module_param_named(beacon_timeout, iwlwifi_mod_params.beacon_timeout, uint, 0644);
+MODULE_PARM_DESC(beacon_timeout,
+		"Number of missed beacons before disconnecting (default: 16)");
 
 /*
  * set bt_coex_active to true, uCode will do kill/defer

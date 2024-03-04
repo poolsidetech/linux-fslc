@@ -8,9 +8,12 @@
 #include <dt-bindings/input/input.h>
 
 / {
+	/* Uncomment to section to enable serial console */
+	/*
 	chosen {
 		stdout-path = &uart1;
 	};
+	*/
 
 	memory@10000000 {
 		device_type = "memory";
@@ -22,7 +25,6 @@
 		regulator-name = "usb_otg_vbus";
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
-		gpio = <&gpio3 22 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 		vin-supply = <&swbst_reg>;
 	};
@@ -32,7 +34,6 @@
 		regulator-name = "usb_h1_vbus";
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
-		gpio = <&gpio1 29 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 		vin-supply = <&swbst_reg>;
 	};
@@ -40,19 +41,21 @@
 	reg_audio: regulator-audio {
 		compatible = "regulator-fixed";
 		regulator-name = "wm8962-supply";
-		gpio = <&gpio4 10 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
+		status = "disabled";
 	};
 
 	reg_pcie: regulator-pcie {
 		compatible = "regulator-fixed";
+		/* D98 has no pinctrl for this regular?
 		pinctrl-names = "default";
 		pinctrl-0 = <&pinctrl_pcie_reg>;
+		*/
 		regulator-name = "MPCIE_3V3";
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
-		gpio = <&gpio3 19 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
+		regulator-always-on;
 	};
 
 	reg_sensors: regulator-sensors {
@@ -73,23 +76,9 @@
 
 		power {
 			label = "Power Button";
-			gpios = <&gpio3 29 GPIO_ACTIVE_LOW>;
+			gpios = <&gpio6 16 GPIO_ACTIVE_LOW>;
 			wakeup-source;
 			linux,code = <KEY_POWER>;
-		};
-
-		volume-up {
-			label = "Volume Up";
-			gpios = <&gpio1 4 GPIO_ACTIVE_LOW>;
-			wakeup-source;
-			linux,code = <KEY_VOLUMEUP>;
-		};
-
-		volume-down {
-			label = "Volume Down";
-			gpios = <&gpio1 5 GPIO_ACTIVE_LOW>;
-			wakeup-source;
-			linux,code = <KEY_VOLUMEDOWN>;
 		};
 	};
 
@@ -122,29 +111,77 @@
 		pwms = <&pwm1 0 5000000>;
 		brightness-levels = <0 4 8 16 32 64 128 255>;
 		default-brightness-level = <7>;
+		lvds_enable = <&gpio6 14 0>;
+		enable = <&gpio6 15 0>;
 		status = "okay";
 	};
 
-	leds {
-		compatible = "gpio-leds";
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_gpio_leds>;
+	/* D98 has no GPIO LEDS */
 
-		led-red {
-			gpios = <&gpio1 2 0>;
-			default-state = "on";
-		};
+	/*
+	 * Define Two identical 1024x600 Panels for LVDS1 and LVDS2
+	 * TODO: The second panel is disabled and its properties
+	 * could probably be removed.
+	 */
+	panel1 {
+		compatible = "panel-lvds";
+                backlight = <&backlight_lvds>;
+
+                data-mapping = "vesa-24";
+                width-mm = <154>;
+                height-mm = <87>;
+
+                panel-timing {
+			clock-frequency = <67200000>;
+			hactive = <1024>;
+			vactive = <600>;
+			hfront-porch = <150>;
+			hsync-len = <76>;
+			hback-porch = <150>;
+			vfront-porch = <60>;
+			vsync-len = <80>;
+			vback-porch = <60>;
+			pixelclk-active = <0>;
+                        hsync-active = <0>;
+                        vsync-active = <0>;
+                };
+
+		 port {
+                        panel1_in: endpoint {
+                                remote-endpoint = <&lvds0_out>;
+                        };
+                };
 	};
 
-	panel {
-		compatible = "hannstar,hsd100pxn1";
-		backlight = <&backlight_lvds>;
+	panel2 {
+		compatible = "panel-lvds";
+                backlight = <&backlight_lvds>;
+		status = "disabled";
 
-		port {
-			panel_in: endpoint {
-				remote-endpoint = <&lvds0_out>;
-			};
-		};
+                data-mapping = "vesa-24";
+                width-mm = <154>;
+                height-mm = <87>;
+
+                panel-timing {
+			clock-frequency = <67200000>;
+			hactive = <1024>;
+			vactive = <600>;
+			hfront-porch = <150>;
+			hsync-len = <76>;
+			hback-porch = <150>;
+			vfront-porch = <60>;
+			vsync-len = <80>;
+			vback-porch = <60>;
+			pixelclk-active = <0>;
+                        hsync-active = <0>;
+                        vsync-active = <0>;
+                };
+
+		 port {
+                        panel2_in: endpoint {
+                                remote-endpoint = <&lvds1_out>;
+                        };
+                };
 	};
 };
 
@@ -153,19 +190,18 @@
 	data-shift = <12>; /* Lines 19:12 used */
 	hsync-active = <1>;
 	vsync-active = <1>;
-};
-
-&ipu1_csi0_mux_from_parallel_sensor {
-	remote-endpoint = <&ov5642_to_ipu1_csi0_mux>;
+	status = "disabled";
 };
 
 &ipu1_csi0 {
 	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_ipu1_csi0>;
+	/* D98 uses these pins for extra UARTs */
+	/* pinctrl-0 = <&pinctrl_ipu1_csi0>; */
+	status = "disabled";
 };
 
 &mipi_csi {
-	status = "okay";
+	status = "disabled";
 
 	port@0 {
 		reg = <0>;
@@ -273,29 +309,11 @@
 		vddio-supply = <&reg_sensors>;
 	};
 
-	ov5642: camera@3c {
-		compatible = "ovti,ov5642";
-		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_ov5642>;
-		clocks = <&clks IMX6QDL_CLK_CKO>;
-		clock-names = "xclk";
-		reg = <0x3c>;
-		DOVDD-supply = <&vgen4_reg>; /* 1.8v */
-		AVDD-supply = <&vgen3_reg>;  /* 2.8v, rev C board is VGEN3
-						rev B board is VGEN5 */
-		DVDD-supply = <&vgen2_reg>;  /* 1.5v*/
-		powerdown-gpios = <&gpio1 16 GPIO_ACTIVE_HIGH>;
-		reset-gpios = <&gpio1 17 GPIO_ACTIVE_LOW>;
-		status = "disabled";
+	/* D98 does not have a camera port */
 
-		port {
-			ov5642_to_ipu1_csi0_mux: endpoint {
-				remote-endpoint = <&ipu1_csi0_mux_from_parallel_sensor>;
-				bus-width = <8>;
-				hsync-active = <1>;
-				vsync-active = <1>;
-			};
-		};
+	s35390a_rtc@30 {
+		compatible = "sii,s35390a";
+		reg = <0x30>;
 	};
 };
 
@@ -313,12 +331,13 @@
 		interrupt-parent = <&gpio6>;
 		interrupts = <8 IRQ_TYPE_EDGE_FALLING>;
 		wakeup-gpios = <&gpio6 8 GPIO_ACTIVE_HIGH>;
+		status = "disabled";
 	};
 
 	ov5640: camera@3c {
 		compatible = "ovti,ov5640";
 		pinctrl-names = "default";
-		pinctrl-0 = <&pinctrl_ov5640>;
+		/* pinctrl-0 = <&pinctrl_ov5640>; */
 		reg = <0x3c>;
 		clocks = <&clks IMX6QDL_CLK_CKO>;
 		clock-names = "xclk";
@@ -328,6 +347,7 @@
 		DVDD-supply = <&vgen2_reg>;  /* 1.5v*/
 		powerdown-gpios = <&gpio1 19 GPIO_ACTIVE_HIGH>;
 		reset-gpios = <&gpio1 20 GPIO_ACTIVE_LOW>;
+		status = "disabled";
 
 		port {
 			ov5640_to_mipi_csi2: endpoint {
@@ -337,6 +357,21 @@
 			};
 		};
 	};
+
+
+	hdmi_edid: edid@50 {
+		compatible = "fsl,imx6-hdmi-i2c";
+		reg = <0x50>;
+	};
+};
+
+&i2c3 {
+	clock-frequency = <100000>;
+	pinctrl-names = "default", "gpio";
+	pinctrl-0 = <&pinctrl_i2c3>;
+	scl-gpios = <&gpio1 3 GPIO_ACTIVE_HIGH>;
+	sda-gpios = <&gpio1 6 GPIO_ACTIVE_HIGH>;
+	status = "okay";
 
 	pmic: pfuze100@8 {
 		compatible = "fsl,pfuze100";
@@ -417,6 +452,7 @@
 			vgen3_reg: vgen3 {
 				regulator-min-microvolt = <1800000>;
 				regulator-max-microvolt = <3300000>;
+				regulator-always-on;
 			};
 
 			vgen4_reg: vgen4 {
@@ -438,13 +474,6 @@
 			};
 		};
 	};
-};
-
-&i2c3 {
-	clock-frequency = <100000>;
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_i2c3>;
-	status = "okay";
 
 	egalax_ts@4 {
 		compatible = "eeti,egalax_ts";
@@ -452,6 +481,7 @@
 		interrupt-parent = <&gpio6>;
 		interrupts = <7 2>;
 		wakeup-gpios = <&gpio6 7 0>;
+		status = "disabled";
 	};
 
 	magnetometer@e {
@@ -463,6 +493,7 @@
 		interrupts = <16 IRQ_TYPE_EDGE_RISING>;
 		vdd-supply = <&reg_sensors>;
 		vddio-supply = <&reg_sensors>;
+		status = "disabled";
 	};
 
 	light-sensor@44 {
@@ -473,6 +504,7 @@
 		interrupt-parent = <&gpio3>;
 		interrupts = <9 IRQ_TYPE_EDGE_FALLING>;
 		vcc-supply = <&reg_sensors>;
+		status = "disabled";
 	};
 };
 
@@ -487,11 +519,21 @@
 				MX6QDL_PAD_NANDF_D1__GPIO2_IO01 0x1b0b0
 				MX6QDL_PAD_NANDF_D2__GPIO2_IO02 0x1b0b0
 				MX6QDL_PAD_NANDF_D3__GPIO2_IO03 0x1b0b0
-				MX6QDL_PAD_GPIO_0__CCM_CLKO1    0x130b0
+				/* D98 MCU Reset */
+				MX6QDL_PAD_GPIO_0__GPIO1_IO00	0x1b0b0
+				/* D98 MCU Update */
+				MX6QDL_PAD_GPIO_1__GPIO1_IO01	0x1b0b0
+				/* Hub Board MCU Update */
+				MX6QDL_PAD_GPIO_16__GPIO7_IO11	0x1b0b0
+				/* Hub Board MCU Reset */
+				MX6QDL_PAD_GPIO_2__GPIO1_IO02	0x1b0b0
 				MX6QDL_PAD_NANDF_CLE__GPIO6_IO07 0x1b0b0
 				MX6QDL_PAD_ENET_TXD1__GPIO1_IO29 0x1b0b0
 				MX6QDL_PAD_EIM_D22__GPIO3_IO22  0x1b0b0
 				MX6QDL_PAD_ENET_CRS_DV__GPIO1_IO25 0x1b0b0
+
+				/* rtc */
+				MX6QDL_PAD_NANDF_CS0__GPIO6_IO11   0xc0000000
 			>;
 		};
 
@@ -523,22 +565,28 @@
 				MX6QDL_PAD_RGMII_TD2__RGMII_TD2		0x1b030
 				MX6QDL_PAD_RGMII_TD3__RGMII_TD3		0x1b030
 				MX6QDL_PAD_RGMII_TX_CTL__RGMII_TX_CTL	0x1b030
-				MX6QDL_PAD_ENET_REF_CLK__ENET_TX_CLK	0x1b0b0
+				/* MX6QDL_PAD_ENET_REF_CLK__ENET_TX_CLK	0x1b0b0
+				 * Changes to CONFIG_BITS
+				 *  Turn off PAD_CTL_HYS, PAT_CTL_PUS_22KUP
+				 *  Turn on SRE_FAST
+				 */
+				MX6QDL_PAD_ENET_REF_CLK__ENET_TX_CLK	0x100b1
 				MX6QDL_PAD_RGMII_RXC__RGMII_RXC		0x1b030
 				MX6QDL_PAD_RGMII_RD0__RGMII_RD0		0x1b030
 				MX6QDL_PAD_RGMII_RD1__RGMII_RD1		0x1b030
 				MX6QDL_PAD_RGMII_RD2__RGMII_RD2		0x1b030
 				MX6QDL_PAD_RGMII_RD3__RGMII_RD3		0x1b030
 				MX6QDL_PAD_RGMII_RX_CTL__RGMII_RX_CTL	0x1b030
-				MX6QDL_PAD_GPIO_16__ENET_REF_CLK	0x4001b0a8
+				/* Completely disable ENET_REF_CLK (???) */
+				/*MX6QDL_PAD_GPIO_16__ENET_REF_CLK	0x4001b0a8*/
+				/* Enable GPIO needed for RGMII interrupts (???) */
+				MX6QDL_PAD_ENET_RXD1__GPIO1_IO26        0x03000
 			>;
 		};
 
 		pinctrl_gpio_keys: gpio_keysgrp {
 			fsl,pins = <
-				MX6QDL_PAD_EIM_D29__GPIO3_IO29 0x1b0b0
-				MX6QDL_PAD_GPIO_4__GPIO1_IO04  0x1b0b0
-				MX6QDL_PAD_GPIO_5__GPIO1_IO05  0x1b0b0
+				MX6QDL_PAD_NANDF_CS3__GPIO6_IO16 0x1b0b0
 			>;
 		};
 
@@ -583,8 +631,8 @@
 
 		pinctrl_i2c3: i2c3grp {
 			fsl,pins = <
-				MX6QDL_PAD_GPIO_3__I2C3_SCL		0x4001b8b1
-				MX6QDL_PAD_GPIO_6__I2C3_SDA		0x4001b8b1
+				MX6QDL_PAD_EIM_D17__I2C3_SCL		0x4001b8b1
+				MX6QDL_PAD_EIM_D18__I2C3_SDA		0x4001b8b1
 			>;
 		};
 
@@ -616,23 +664,11 @@
 			>;
 		};
 
-		pinctrl_ov5640: ov5640grp {
-			fsl,pins = <
-				MX6QDL_PAD_SD1_DAT2__GPIO1_IO19 0x1b0b0
-				MX6QDL_PAD_SD1_CLK__GPIO1_IO20  0x1b0b0
-			>;
-		};
-
-		pinctrl_ov5642: ov5642grp {
-			fsl,pins = <
-				MX6QDL_PAD_SD1_DAT0__GPIO1_IO16 0x1b0b0
-				MX6QDL_PAD_SD1_DAT1__GPIO1_IO17 0x1b0b0
-			>;
-		};
-
 		pinctrl_pcie: pciegrp {
 			fsl,pins = <
-				MX6QDL_PAD_GPIO_17__GPIO7_IO12	0x1b0b0
+				/* D98 schematic indicates PCIE_RST function is
+				   muxed differently than on i.mx6q demo board */
+				MX6QDL_PAD_SD4_DAT4__GPIO2_IO12	0x1b0b0
 			>;
 		};
 
@@ -656,8 +692,37 @@
 
 		pinctrl_uart1: uart1grp {
 			fsl,pins = <
-				MX6QDL_PAD_CSI0_DAT10__UART1_TX_DATA	0x1b0b1
-				MX6QDL_PAD_CSI0_DAT11__UART1_RX_DATA	0x1b0b1
+				MX6QDL_PAD_CSI0_DAT10__UART1_TX_DATA 0x1b0b1
+				MX6QDL_PAD_CSI0_DAT11__UART1_RX_DATA 0x1b0b1
+				MX6QDL_PAD_EIM_D19__UART1_CTS_B      0x1b0b1
+				MX6QDL_PAD_EIM_D20__UART1_RTS_B      0x1b0b1
+			>;
+		};
+
+		pinctrl_uart2: uart2grp {
+			fsl,pins = <
+				MX6QDL_PAD_EIM_D26__UART2_TX_DATA   0x1b0b1
+				MX6QDL_PAD_EIM_D27__UART2_RX_DATA   0x1b0b1
+				MX6QDL_PAD_SD4_DAT6__UART2_CTS_B    0x1b0b1
+				MX6QDL_PAD_SD4_DAT5__UART2_RTS_B    0x1b0b1
+			>;
+		};
+
+		pinctrl_uart3: uart3grp {
+			fsl,pins = <
+				MX6QDL_PAD_EIM_D24__UART3_TX_DATA 0x1b0b1
+				MX6QDL_PAD_EIM_D25__UART3_RX_DATA 0x1b0b1
+				MX6QDL_PAD_EIM_D30__UART3_CTS_B   0x1b0b1
+				MX6QDL_PAD_EIM_D31__UART3_RTS_B   0x1b0b1
+			>;
+		};
+
+		pinctrl_uart4: uart4grp {
+			fsl,pins = <
+				MX6QDL_PAD_CSI0_DAT12__UART4_TX_DATA 0x1b0b1
+				MX6QDL_PAD_CSI0_DAT13__UART4_RX_DATA 0x1b0b1
+				MX6QDL_PAD_CSI0_DAT17__UART4_CTS_B   0x1b0b1
+				MX6QDL_PAD_CSI0_DAT16__UART4_RTS_B   0x1b0b1
 			>;
 		};
 
@@ -675,10 +740,6 @@
 				MX6QDL_PAD_SD2_DAT1__SD2_DATA1		0x17059
 				MX6QDL_PAD_SD2_DAT2__SD2_DATA2		0x17059
 				MX6QDL_PAD_SD2_DAT3__SD2_DATA3		0x17059
-				MX6QDL_PAD_NANDF_D4__SD2_DATA4		0x17059
-				MX6QDL_PAD_NANDF_D5__SD2_DATA5		0x17059
-				MX6QDL_PAD_NANDF_D6__SD2_DATA6		0x17059
-				MX6QDL_PAD_NANDF_D7__SD2_DATA7		0x17059
 			>;
 		};
 
@@ -697,50 +758,43 @@
 			>;
 		};
 
-		pinctrl_usdhc4: usdhc4grp {
-			fsl,pins = <
-				MX6QDL_PAD_SD4_CMD__SD4_CMD		0x17059
-				MX6QDL_PAD_SD4_CLK__SD4_CLK		0x10059
-				MX6QDL_PAD_SD4_DAT0__SD4_DATA0		0x17059
-				MX6QDL_PAD_SD4_DAT1__SD4_DATA1		0x17059
-				MX6QDL_PAD_SD4_DAT2__SD4_DATA2		0x17059
-				MX6QDL_PAD_SD4_DAT3__SD4_DATA3		0x17059
-				MX6QDL_PAD_SD4_DAT4__SD4_DATA4		0x17059
-				MX6QDL_PAD_SD4_DAT5__SD4_DATA5		0x17059
-				MX6QDL_PAD_SD4_DAT6__SD4_DATA6		0x17059
-				MX6QDL_PAD_SD4_DAT7__SD4_DATA7		0x17059
-			>;
-		};
-
+/*
 		pinctrl_wdog: wdoggrp {
 			fsl,pins = <
 				MX6QDL_PAD_GPIO_1__WDOG2_B		0x1b0b0
 			>;
 		};
+*/
 	};
 
-	gpio_leds {
-		pinctrl_gpio_leds: gpioledsgrp {
-			fsl,pins = <
-				MX6QDL_PAD_GPIO_2__GPIO1_IO02 0x1b0b0
-			>;
-		};
-	};
+	/* D98 does not have GPIO LEDS */
 };
 
-&ldb {
-	status = "okay";
 
-	lvds-channel@1 {
-		fsl,data-mapping = "spwg";
-		fsl,data-width = <18>;
-		status = "okay";
+&ldb {
+        status = "okay";
+
+        lvds-channel@0 {
+                status = "okay";
 
 		port@4 {
 			reg = <4>;
 
 			lvds0_out: endpoint {
-				remote-endpoint = <&panel_in>;
+				remote-endpoint = <&panel1_in>;
+			};
+		};
+	};
+
+	lvds-channel@1 {
+		status = "disabled";
+
+		port@4 {
+			reg = <4>;
+			status = "disabled";
+
+			lvds1_out: endpoint {
+				remote-endpoint = <&panel2_in>;
 			};
 		};
 	};
@@ -797,6 +851,45 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart1>;
 	status = "okay";
+	/* Comment out the following 5 lines to enable serial console */
+	uart-has-rtscts;
+	rs485-rts-active-high;
+	rs485-rx-during-tx;
+	rs485-rts-delay = <1 1>;
+	linux,rs485-enabled-at-boot-time;
+};
+
+&uart2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart2>;
+	uart-has-rtscts;
+	status = "okay";
+	rs485-rts-active-high;
+	rs485-rx-during-tx;
+	rs485-rts-delay = <1 1>;
+	linux,rs485-enabled-at-boot-time;
+};
+
+&uart3 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart3>;
+	uart-has-rtscts;
+	status = "okay";
+	rs485-rts-active-high;
+	rs485-rx-during-tx;
+	rs485-rts-delay = <1 1>;
+	linux,rs485-enabled-at-boot-time;
+};
+
+&uart4 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart4>;
+	uart-has-rtscts;
+	status = "okay";
+	rs485-rts-active-high;
+	rs485-rx-during-tx;
+	rs485-rts-delay = <1 1>;
+	linux,rs485-enabled-at-boot-time;
 };
 
 &usbh1 {
@@ -815,9 +908,9 @@
 &usdhc2 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_usdhc2>;
-	bus-width = <8>;
-	cd-gpios = <&gpio2 2 GPIO_ACTIVE_LOW>;
-	wp-gpios = <&gpio2 3 GPIO_ACTIVE_HIGH>;
+	bus-width = <4>;
+	cd-gpios = <&gpio3 22 GPIO_ACTIVE_LOW>;
+	wp-gpios = <&gpio3 21 GPIO_ACTIVE_LOW>;
 	status = "okay";
 };
 
@@ -825,27 +918,22 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_usdhc3>;
 	bus-width = <8>;
-	cd-gpios = <&gpio2 0 GPIO_ACTIVE_LOW>;
-	wp-gpios = <&gpio2 1 GPIO_ACTIVE_HIGH>;
-	status = "okay";
-};
-
-&usdhc4 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_usdhc4>;
-	bus-width = <8>;
 	non-removable;
 	no-1-8-v;
+	keep-power-in-suspend;
 	status = "okay";
 };
 
+/* D98 uses watchdog 1, not watchdog 2 */
 &wdog1 {
-	status = "disabled";
+	status = "okay";
 };
 
+/*
 &wdog2 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_wdog>;
 	fsl,ext-reset-output;
-	status = "okay";
+	status = "disabled";
 };
+*/
