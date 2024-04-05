@@ -8,12 +8,18 @@
 #include <dt-bindings/input/input.h>
 
 / {
-	/* Uncomment to section to enable serial console */
-	/*
+	/* poolside-serial-console: Comment this "chosen" section to disable serial console */
 	chosen {
 		stdout-path = &uart1;
 	};
-	*/
+
+	/* D98 has no usdhc1 or usdhc4; mmc0 should be the SD card and mmc1 the eMMC */
+	aliases {
+		mmc0 = &usdhc2;
+		mmc1 = &usdhc3;
+		/delete-property/ mmc3;
+		/delete-property/ mmc4;
+	};
 
 	memory@10000000 {
 		device_type = "memory";
@@ -851,12 +857,14 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_uart1>;
 	status = "okay";
-	/* Comment out the following 5 lines to enable serial console */
+	/* poolside-serial-console: Uncomment the following 5 lines to disable serial console */
+	/*
 	uart-has-rtscts;
 	rs485-rts-active-high;
 	rs485-rx-during-tx;
 	rs485-rts-delay = <1 1>;
 	linux,rs485-enabled-at-boot-time;
+	*/
 };
 
 &uart2 {
