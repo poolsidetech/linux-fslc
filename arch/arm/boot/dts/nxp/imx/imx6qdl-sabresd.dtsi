@@ -9,9 +9,11 @@
 
 / {
 	/* poolside-serial-console: Comment this "chosen" section to disable serial console */
+	/*
 	chosen {
 		stdout-path = &uart1;
 	};
+	*/
 
 	/* D98 has no usdhc1 or usdhc4; mmc0 should be the SD card and mmc1 the eMMC */
 	aliases {
