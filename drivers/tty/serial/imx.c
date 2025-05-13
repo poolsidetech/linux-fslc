@@ -1943,6 +1943,10 @@ static int imx_uart_rs485_config(struct uart_port *port, struct ktermios *termio
 	struct imx_port *sport = (struct imx_port *)port;
 	u32 ucr2, ufcr;
 
+	// Hardcode these delays to zero so DMX works correctly
+	rs485conf->delay_rts_before_send = 0;
+	rs485conf->delay_rts_after_send = 0;
+
 	if (rs485conf->flags & SER_RS485_ENABLED) {
 		/* Enable receiver if low-active RTS signal is requested */
 		if (sport->have_rtscts &&  !sport->have_rtsgpio &&
